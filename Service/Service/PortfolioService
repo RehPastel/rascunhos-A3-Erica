@@ -1,0 +1,43 @@
+package service;
+
+import PortfolioDAO;
+import portfolioDAO;
+import LogDAO;
+import PortfolioDAO;
+import portfolioDAO;
+
+public class PortfolioService {
+    private final PortfolioDAO portfolioDAO;
+    private final LogDAO logDAO;
+
+
+    public PortfolioService(PortfolioDAO portfolioDAO, LogDAO logDAO) {
+        this.portfolioDAO = portfolioDAO;
+        this.logDAO = logDAO;
+    }
+    public Portfolio createPortfolio(Portfolio portfolio, User currentUser) {
+        Portfolio createdPortfolio = portfolioDAO.create(portfolio);
+        String logDetails = "Carteira '" + createdPortfolio.getName() + "' (ID: " + createdPortfolio.getId() + ") criada para o investidor '" + currentUser.getName() + "' (ID: " + createdPortfolio.getInvestorId() + ").";
+        logDAO.create(currentUser.getId(), "create_portfolio", logDetails);
+        return createdPortfolio;
+    }
+    public void addItem(PortfolioItem item) {
+        portfolioItemDAO.create(item);
+        String logDetails = "Ativo ID" + item.getAssetId() + " adicionado à carteira ID " + item.getPortfolioId() + ".";
+        logDAO.create(item.getInvestorId(), "add_item", logDetails);
+    }
+    public void removeItem(Long portfolioItemId){
+        portfolioItemDAO.delete(portfolioItemId);
+        String logDetails = "Item do portfólio ID" + portfolioItemId + " removido da carteira do investidor ID " + investorId + ".";
+        logDAO.create(investorId, "remove_item", logDetails);
+    }
+    public Portfolio loadPortfolioWithItems(Long portfolioId) {
+        Portfolio portfolio = portfolioDAO.findById(portfolioId)
+            .orElseThrow(() -> new RuntimeException("Portfólio não encontrado"));
+        List<PortfolioItem> items = portfolioItemDAO.findByPortfolioId(portfolioId);
+        for (PortfolioItem item : items) {
+            portfolio.addItem(item);
+        }
+        return portfolio;
+    }
+}

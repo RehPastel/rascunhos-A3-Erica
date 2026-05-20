@@ -1,0 +1,79 @@
+package service;
+
+import PortfolioService;
+import Portfolioservice;
+import PortfolioPriceDAO;
+import portfolioPriceDAO;
+import OptimizationDAO;
+import optimizationDAO;
+
+public class PortfolioOptimizerService {
+    private final PortfolioService portfolioService;
+    private final PortfolioPriceDAO portfolioPriceDAO;
+    private final OptimizationDAO optimizationDAO;
+
+    public PortfolioOptimizerService(PortfolioService portfolioService, PortfolioPriceDAO portfolioPriceDAO, OptimizationDAO optimizationDAO) {
+        this.portfolioService = portfolioService;
+        this.portfolioPriceDAO = portfolioPriceDAO;
+        this.optimizationDAO = optimizationDAO;
+    }
+    public Optimization optimizePortfolio(Long portfolioId, String riskProfile, User currentUser){
+        Portfolio portfolio = portfolioService.loadPortfolioWithItems(portfolioId);
+        if (!portfolio.getInvestorId().equals(currentUser.getId())) {
+            throw new RuntimeException("Acesso negado: este portfólio não pertence ao usuário.");
+        }
+        List<PortfolioItem> items = portfolio.getItems();
+        Map<Long, Double> suggestedWeights = calculateOptimizedWeights(items, riskProfile);
+        for (PortfolioItem item : items) {
+            Double suggestedWeight = suggestedWeights.get(item.getAssetId());
+            if (suggestedWeight != null) {
+                item.setSuggestedWeight(suggestedWeight);
+            }
+        }
+        Optimization optimization = new Optimization();
+        optimization.setPortfolioId(portfolioId);
+        optimization.setRiskProfile(riskProfile);
+        optimization.setExecutedBy(currentUser != null ? currentUser.getId() : null);
+        Optimization savedOptimization = optimizationDAO.create(optimization);
+
+        String logDetails = "Otimização de portfólio ID " + portfolioId + " realizada com sucesso pelo utilizador '" + (currentUser != null ? currentUser.getName() : "Sistema") + "' usando o perfil de risco '" + riskProfile + "'."; 
+        Long operatorId = currentUser != null ? currentUser.getId() : null;
+        logDAO.create(operatorId, "optimize_portfolio", logDetails);
+        return savedOptimization;
+    }   
+    private Map<Long, Double> calculateOptimizedWeights(List<PortfolioItem> items, String riskProfile) {
+        Map<Long, Double> suggestedWeights = new HashMap<>();
+        int totalAssets = items.size();
+        double remainingWeight = 1.0;
+        switch (riskProfile.toLowerCase()) {
+            case "conservative":
+                for (int i = 0; i < totalAssets; i++) {
+                    if (i == totalAssets - 1){
+                        weights.put(items.get(i).getAssetId(), remainingWeight);
+                    } else {
+                        double weight = remainingWeight * 0.06;
+                        weights.put(items.get(i).getAssetId(), weight);
+                        remainingWeight -= weight;
+                    }
+                }
+                break;
+            case "balanced":
+            default:
+                double uniformWeight = 1.0 / totalAssets;
+                for (PortfolioItem item : items) {
+                    weights.put(item.getAssetId(), uniformWeight);
+                }
+                break;
+            case "aggressive":
+                double equalWeightAggressive = 1.0 / totalAssets;
+                for (PortfolioItem item : items) {
+                    weights.put(item.getAssetId(), equalWeightAggressive);
+                }
+                break;
+            }
+            return weights;
+    
+        }
+
+    
+}
