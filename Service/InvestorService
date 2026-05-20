@@ -1,0 +1,49 @@
+package service;
+
+import InvestorDAO;
+import investorDAO;
+import LogDAO;
+import logDAO;
+
+public class InvestorService {
+    private final InvestorDAO investorDAO;
+    private final LogDAO logDAO;
+
+    public InvestorService(InvestorDAO investorDAO, LogDAO logDAO) {
+        this.investorDAO = investorDAO;
+        this.logDAO = logDAO;
+    }
+
+    public Investor getInvestorById(Long id) {
+        return investorDAO.findById(id)
+            .orElseThrow(() -> new RuntimeException("Investidor não encontrado"));
+    }
+
+    public Investor createInvestor(Investor investor, User currentUser){
+        if (currentUser == null || !currentUser.isManager()) {
+            throw new RuntimeException("Apenas administradores podem criar investidores");
+        }
+        investir.setResponsibleManagerId(currentUser.getId());
+        
+        Investor savedInvestor = investorDAO.create(investor);
+
+        String logDetails = "Gerente '" + currentUser.getName() + "' (ID: " + currentUser.getId() + ") criou o investidor '" + savedInvestor.getName() + "' (ID: " + savedInvestor.getId() + ")" + "com perfil de risco " + savedInvestor.getRiskProfile() + ".";
+
+        logDAO.create(currentUser.getId(), "create_investor", logDetails);
+        return savedInvestor;
+    }
+
+    public void deleteInvestor(Long investorId, User currentUser) {
+        if (currentUser == null || !currentUser.isManager()) {
+            throw new RuntimeException("Apenas administradores podem deletar investidores");
+        }
+        Investor investorToDelete = investorDAO.findById(investorId)
+            .orElseThrow(() -> new RuntimeException("Investidor não encontrado"));
+        
+        investorDAO.delete(investorId);
+
+        String logDetails = "Gerente '" + currentUser.getName() + "' (ID: " + currentUser.getId() + ") deletou o investidor '" + investorToDelete.getName() + "' (ID: " + investorToDelete.getId() + ").";
+
+        logDAO.create(currentUser.getId(), "delete_investor", logDetails);
+    }
+}
